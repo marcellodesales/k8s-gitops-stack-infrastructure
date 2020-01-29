@@ -4,6 +4,11 @@ kind: Application
 metadata:
   name: olm
   namespace: argocd
+
+  # May be needed for OLM resources
+  annotations:
+    argocd.argoproj.io/sync-options: Validate=false
+
   # finalizers:  # Add a this finalizer ONLY if you want these to cascade delete.
   #   - resources-finalizer.argocd.argoproj.io   
 spec:

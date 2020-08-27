@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: service-mesh-pkg
+  name: service-mesh-package
   namespace: argocd
   # finalizers:  # Add a this finalizer ONLY if you want these to cascade delete.
   #   - resources-finalizer.argocd.argoproj.io 
@@ -10,13 +10,13 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/aetna-digital-infrastructure/dfp-gitops-package-servicemesh.git
+    repoURL: https://github.com/robparrott/k8s-gitops-stack-infrastructure.git
     targetRevision: HEAD
-    path: modules
+    path: modules/service-mesh
     
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: argocd
+  # destination:
+  #   server: https://kubernetes.default.svc
+  #   namespace: argocd
 
   # Sync policy
   syncPolicy:

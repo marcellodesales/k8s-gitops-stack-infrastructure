@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: api-infra-gateway-package
+  name: app-infra-gloo
   namespace: argocd
   # finalizers:  # Add a this finalizer ONLY if you want these to cascade delete.
   #   - resources-finalizer.argocd.argoproj.io 
@@ -11,9 +11,14 @@ spec:
   project: default
   source:
 
-    repoURL: https://github.com/robparrott/k8s-gitops-stack-infrastructure.git
-    targetRevision: HEAD
-    path: modules/api-gateway
+    # New chart v2.X in new helm repo
+    repoURL: 'https://storage.googleapis.com/solo-public-helm'
+    targetRevision: 1.4.11
+    chart: gloo
+
+    # repoURL: https://github.com/robparrott/k8s-gitops-stack-infrastructure.git
+    # targetRevision: HEAD
+    # path: modules/api-gateway
     
   destination:
     server: https://kubernetes.default.svc

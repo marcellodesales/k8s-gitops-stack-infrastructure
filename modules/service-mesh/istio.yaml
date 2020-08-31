@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-infra-istio-operator
+  name: app-infra-istio
   namespace: argocd
   
   # finalizers:  # Add a this finalizer ONLY if you want these to cascade delete.
@@ -14,7 +14,7 @@ spec:
 
     repoURL: https://github.com/robparrott/k8s-gitops-stack-infrastructure.git
     targetRevision: HEAD
-    path: implementation/stio-operator
+    path: implementation/istio
     
   destination:
     server: https://kubernetes.default.svc

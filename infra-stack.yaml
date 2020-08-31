@@ -4,19 +4,22 @@ kind: Application
 metadata:
   name: stack-infrastructure
   namespace: argocd
+
   # finalizers:  # Add a this finalizer ONLY if you want these to cascade delete.
   #   - resources-finalizer.argocd.argoproj.io  
+
 spec:
   project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
   source:
     directory:
       recurse: true
     repoURL: https://github.com/robparrott/k8s-gitops-stack-infrastructure.git
     targetRevision: HEAD
     path: packages
-  # destination:
-  #   server: https://kubernetes.default.svc
-  #   namespace: argocd
+
     
   # Sync policy
   syncPolicy:

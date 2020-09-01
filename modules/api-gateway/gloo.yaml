@@ -1,0 +1,33 @@
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-infra-gloo
+  namespace: argocd
+
+  # finalizers:  # Add a this finalizer ONLY if you want these to cascade delete.
+  #   - resources-finalizer.argocd.argoproj.io 
+      
+spec:
+  project: default
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gloo-system
+
+  source:
+    repoURL: https://github.com/robparrott/k8s-gitops-stack-infrastructure.git
+    targetRevision: HEAD
+    path: implementation/gloo
+
+  # Sync policy
+  syncPolicy:
+    automated:
+      # Specifies if resources should be pruned during auto-syncing ( false by default ).
+      prune: true 
+
+      # Specifies if partial app sync should be executed when resources are 
+      #   changed only in target Kubernetes cluster and no git change detected 
+      #   ( false by default ).
+      selfHeal: false 

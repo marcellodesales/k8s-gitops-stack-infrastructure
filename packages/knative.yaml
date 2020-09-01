@@ -13,11 +13,11 @@ spec:
 
     repoURL: https://github.com/robparrott/k8s-gitops-stack-infrastructure.git
     targetRevision: HEAD
-    path: modules/api-gateway
+    path: modules/knative
     
   destination:
     server: https://kubernetes.default.svc
-    namespace: gloo-system
+    namespace: argocd 
 
   # Sync policy
   syncPolicy:

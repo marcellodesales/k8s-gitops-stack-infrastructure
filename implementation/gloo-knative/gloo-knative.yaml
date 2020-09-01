@@ -1,0 +1,359 @@
+
+---
+# Source: gloo/templates/27-knative-external-proxy-configmap.yaml
+# configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: knative-external-proxy-config
+  namespace: gloo-system
+  labels:
+    app: gloo
+    gloo: knative-external-proxy
+data:
+  envoy.yaml: |
+    node:
+      cluster: knative
+      id: "{{.PodName}}.{{.PodNamespace}}"
+      metadata:
+        # role's value is the key for the in-memory xds cache (projects/gloo/pkg/xds/envoy.go)
+        role: "{{.PodNamespace}}~knative-external-proxy"
+    static_resources:
+      clusters:
+      - name: xds_cluster
+        connect_timeout: 5.000s
+        load_assignment:
+          cluster_name: xds_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: gloo
+                    port_value: 9977
+        http2_protocol_options: {}
+        upstream_connection_options:
+          tcp_keepalive: {}
+        type: STRICT_DNS
+
+
+    dynamic_resources:
+      ads_config:
+        api_type: GRPC
+        rate_limit_settings: {}
+        grpc_services:
+        - envoy_grpc: {cluster_name: xds_cluster}
+      cds_config:
+        ads: {}
+      lds_config:
+        ads: {}
+    admin:
+      access_log_path: /dev/null
+      address:
+        socket_address:
+          address: 127.0.0.1
+          port_value: 19000 # if .Values.settings.integrations.knative.proxy.tracing
+---
+# Source: gloo/templates/30-knative-internal-proxy-configmap.yaml
+# configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: knative-internal-proxy-config
+  namespace: gloo-system
+  labels:
+    app: gloo
+    gloo: knative-internal-proxy
+data:
+  envoy.yaml: |
+    node:
+      cluster: knative
+      id: "{{.PodName}}.{{.PodNamespace}}"
+      metadata:
+        # role's value is the key for the in-memory xds cache (projects/gloo/pkg/xds/envoy.go)
+        role: "{{.PodNamespace}}~knative-internal-proxy"
+    static_resources:
+      clusters:
+      - name: xds_cluster
+        connect_timeout: 5.000s
+        load_assignment:
+          cluster_name: xds_cluster
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: gloo
+                    port_value: 9977
+        http2_protocol_options: {}
+        upstream_connection_options:
+          tcp_keepalive: {}
+        type: STRICT_DNS
+
+
+    dynamic_resources:
+      ads_config:
+        api_type: GRPC
+        rate_limit_settings: {}
+        grpc_services:
+        - envoy_grpc: {cluster_name: xds_cluster}
+      cds_config:
+        ads: {}
+      lds_config:
+        ads: {}
+    admin:
+      access_log_path: /dev/null
+      address:
+        socket_address:
+          address: 127.0.0.1
+          port_value: 19000 # if .Values.settings.integrations.knative.proxy.tracing
+---
+# Source: gloo/templates/22-namespace-clusterrole-knative.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+    name: gloo-role-knative-gloo-system
+    labels:
+        app: gloo
+        gloo: rbac
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "secrets", "endpoints", "configmaps"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "create"]
+- apiGroups: ["gloo.solo.io", "enterprise.gloo.solo.io"]
+  resources: ["settings", "upstreams","upstreamgroups", "proxies","virtualservices", "routetables", "authconfigs"]
+  verbs: ["*"]
+- apiGroups: ["networking.internal.knative.dev"]
+  resources: ["clusteringresses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.internal.knative.dev"]
+  resources: ["clusteringresses/status"]
+  verbs: ["update"]
+- apiGroups: ["networking.internal.knative.dev"]
+  resources: ["ingresses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.internal.knative.dev"]
+  resources: ["ingresses/status"]
+  verbs: ["update"]
+---
+# Source: gloo/templates/25-namespace-clusterrolebinding-knative.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: gloo-role-binding-knative-gloo-system
+  labels:
+    app: gloo
+    gloo: rbac
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: gloo-system
+- kind: ServiceAccount
+  name: discovery
+  namespace: gloo-system
+- kind: ServiceAccount
+  name: gloo
+  namespace: gloo-system
+roleRef:
+  kind: ClusterRole
+  name: gloo-role-knative-gloo-system
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Source: gloo/templates/28-knative-external-proxy-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gloo
+    gloo: knative-external-proxy
+  name: knative-external-proxy
+  namespace: gloo-system
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    name: http
+  - port: 443
+    protocol: TCP
+    name: https
+  selector:
+    gloo: knative-external-proxy
+  type: LoadBalancer
+---
+# Source: gloo/templates/31-knative-internal-proxy-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: gloo
+    gloo: knative-internal-proxy
+  name: knative-internal-proxy
+  namespace: gloo-system
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    name: http
+  - port: 443
+    protocol: TCP
+    name: https
+  selector:
+    gloo: knative-internal-proxy
+  type: ClusterIP
+
+---
+# Source: gloo/templates/26-knative-external-proxy-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gloo
+    gloo: knative-external-proxy
+  name: knative-external-proxy
+  namespace: gloo-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      gloo: knative-external-proxy
+  template:
+    metadata:
+      labels:
+        gloo: knative-external-proxy
+    spec:
+      containers:
+      - args: ["--disable-hot-restart"]
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: quay.io/solo-io/gloo-envoy-wrapper:1.4.11
+        imagePullPolicy: IfNotPresent
+        name: knative-external-proxy
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /etc/envoy
+          name: envoy-config
+      volumes:
+      - configMap:
+          name: knative-external-proxy-config
+        name: envoy-config
+---
+# Source: gloo/templates/29-knative-internal-proxy-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: gloo
+    gloo: knative-internal-proxy
+  name: knative-internal-proxy
+  namespace: gloo-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      gloo: knative-internal-proxy
+  template:
+    metadata:
+      labels:
+        gloo: knative-internal-proxy
+    spec:
+      containers:
+      - args: ["--disable-hot-restart"]
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: quay.io/solo-io/gloo-envoy-wrapper:1.4.11
+        imagePullPolicy: IfNotPresent
+        name: knative-internal-proxy
+        securityContext:
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        - containerPort: 443
+          name: https
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /etc/envoy
+          name: envoy-config
+      volumes:
+      - configMap:
+          name: knative-internal-proxy-config
+        name: envoy-config
+
+---
+# Source: gloo/templates/18-settings.yaml
+apiVersion: gloo.solo.io/v1
+kind: Settings
+metadata:
+  labels:
+    app: gloo
+  name: default
+  namespace: gloo-system
+spec:
+  gloo:
+    xdsBindAddr: "0.0.0.0:9977"
+    invalidConfigPolicy:
+      invalidRouteResponseBody: Gloo Gateway has invalid configuration. Administrators should
+        run `glooctl check` to find and fix config errors.
+      invalidRouteResponseCode: 404
+    disableKubernetesDestinations: false
+    disableProxyGarbageCollection: false
+  discoveryNamespace: gloo-system
+  kubernetesArtifactSource: {}
+  kubernetesConfigSource: {}
+  kubernetesSecretSource: {}
+  refreshRate: 60s
+  knative:
+    knativeExternalProxyAddress: "knative-external-proxy.gloo-system.svc.cluster.local"
+    knativeInternalProxyAddress: "knative-internal-proxy.gloo-system.svc.cluster.local"
+
+  gateway:
+    readGatewaysFromAllNamespaces: false
+    validation:
+      proxyValidationServerAddr: gloo:9988
+      alwaysAccept: true
+      allowWarnings: true
+  discovery:
+    fdsMode: WHITELIST
+---

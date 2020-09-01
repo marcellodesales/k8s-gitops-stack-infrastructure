@@ -176,14 +176,14 @@ spec:
               value: "300s"
             - name: REVISION
               value: ""
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: istio-operator
-  labels:
-    istio-operator-managed: Reconcile
-    istio-injection: disabled
+# ---
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: istio-operator
+#   labels:
+#     istio-operator-managed: Reconcile
+#     istio-injection: disabled
 ---
 apiVersion: v1
 kind: Service
